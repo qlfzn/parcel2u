@@ -12,7 +12,8 @@ import (
 
 // application struct
 type Application struct {
-	Addr string
+	Addr        string
+	AuthHandler *auth.Handler
 }
 
 func (a *Application) Mount() http.Handler {
@@ -23,10 +24,14 @@ func (a *Application) Mount() http.Handler {
 		w.Write([]byte("ok"))
 	})
 
+	r.Route("/auth", func(r chi.Router) {
+		r.Post("/users", a.AuthHandler.RegisterUser)
+	})
+
 	r.Group(func(r chi.Router) {
 		r.Use(auth.AuthMiddleware)
 
-		r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
+		r.Get("/check", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("you are authorised!"))
 		})
 	})

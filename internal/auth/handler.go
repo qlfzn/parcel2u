@@ -54,7 +54,6 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		Role:     payload.Role,
 	}
 
-	// Hash the password
 	if err := user.Password.SetHash(payload.Password); err != nil {
 		http.Error(w, "failed to process password", http.StatusInternalServerError)
 		return
@@ -66,7 +65,6 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate JWT token
 	token, err := CreateToken(user.Username)
 	if err != nil {
 		http.Error(w, "failed to generate token", http.StatusInternalServerError)
@@ -84,11 +82,13 @@ func (h *Handler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	var payload LoginUserPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		log.Printf("LoginUser: invalid request body: %v", err)
 		h.writeErrorResponse(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	if err := validate.Struct(payload); err != nil {
+		log.Printf("LoginUser: validation failed: %v", err)
 		h.writeErrorResponse(w, "validation failed: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -96,19 +96,20 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	user, err := h.userService.GetByUsername(ctx, payload.Username)
 	if err != nil {
+		log.Printf("LoginUser: user not found or db error for username '%s': %v", payload.Username, err)
 		h.writeErrorResponse(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Compare password
 	if err := user.Password.CompareHash(payload.Password); err != nil {
+		log.Printf("LoginUser: password mismatch for username '%s': %v", payload.Username, err)
 		h.writeErrorResponse(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
-	// Generate JWT token
 	token, err := CreateToken(user.Username)
 	if err != nil {
+		log.Printf("LoginUser: failed to generate token for username '%s': %v", payload.Username, err)
 		h.writeErrorResponse(w, "failed to generate token", http.StatusInternalServerError)
 		return
 	}
@@ -118,6 +119,7 @@ func (h *Handler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Token: token,
 	}
 
+	log.Printf("LoginUser: successful login for username '%s'", payload.Username)
 	h.writeJSONResponse(w, response, http.StatusOK)
 }
 

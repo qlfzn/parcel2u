@@ -71,7 +71,7 @@ func (us *UserStore) Create(ctx context.Context, user *User) error {
 
 func (us *UserStore) GetByUsername(ctx context.Context, username string) (*User, error) {
 	query := `
-		SELECT id, username, email, password_hash, role, created_at
+		SELECT id, username, password_hash, role, created_at
 		FROM users 
 		WHERE username = $1
 	`

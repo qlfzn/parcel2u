@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/qlfzn/parcel2u/internal/auth"
 )
 
@@ -19,6 +20,14 @@ type Application struct {
 func (a *Application) Mount() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, 
+	}))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("ok"))
@@ -26,6 +35,7 @@ func (a *Application) Mount() http.Handler {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/users", a.AuthHandler.RegisterUser)
+		r.Post("/login", a.AuthHandler.LoginUser)
 	})
 
 	r.Group(func(r chi.Router) {
